@@ -1,83 +1,104 @@
-# Fashion-MNIST 换色分类实验
+# Fashion-MNIST 换色分类实验<br>Fashion-MNIST color-shift experiment
 
-[English](#english)
+用同一批服装图片比较随机森林、普通 CNN 和加入随机换色训练的 CNN，观察颜色变化对分类结果的影响。运行一次即可生成准确率、混淆矩阵、错分样例和特征图。
 
-衣服的轮廓一样，换个底色和衣服颜色，分类器还认得出来吗？这个机器学习小课设用 Fashion-MNIST 做一次可控的测试，看看颜色变化会让准确率掉多少，以及在训练时随机换色能补回多少。
+Compare a random forest, a standard CNN, and a CNN trained with random recoloring on the same clothing images. One run produces accuracy scores, confusion matrices, misclassified examples, and feature plots.
 
-## 怎么测
+## 快速开始<br>Quick start
 
-训练图是二值化后的黑底白图。两套测试都用原始测试集里的 10,000 张图，类别和轮廓相同。黑白测试（同分布，ID）沿用训练集的配色，换色测试（分布外，OOD）给每张图的衣物和背景分别随机上色。
+建议使用 **Python 3.12**。先获取代码：
 
-用灰度像素训练随机森林作对照。两个 CNN 用同一种网络结构，一个只看黑白图，另一个在训练时给每批图片随机换色。
+Use **Python 3.12** and get the code:
+
+```sh
+git clone https://github.com/William-StarX/fashion-mnist-color-shift.git
+cd fashion-mnist-color-shift
+```
+
+从 [Zalando 的数据目录](https://github.com/zalandoresearch/fashion-mnist/tree/master/data/fashion) 下载以下四个文件，原样放到 `data/fashion/`，保留 `.gz` 压缩格式。
+
+Download these four files from [Zalando's data directory](https://github.com/zalandoresearch/fashion-mnist/tree/master/data/fashion), place them in `data/fashion/`, and keep them compressed as `.gz` files.
+
+```text
+data/fashion/
+  train-images-idx3-ubyte.gz
+  train-labels-idx1-ubyte.gz
+  t10k-images-idx3-ubyte.gz
+  t10k-labels-idx1-ubyte.gz
+```
+
+安装依赖并先运行较短的试跑：
+
+Install the dependencies and start with the shorter smoke run:
+
+```sh
+python -m pip install -r experiment/requirements.txt
+python experiment/main.py --smoke
+```
+
+试跑将每个 CNN 的训练设为 1 轮、随机森林设为 30 棵树。运行结束后，打开 [结果目录](experiment/results/) 和 [图表目录](experiment/figures/)。
+
+The smoke run uses one training epoch per CNN and 30 trees for the random forest. When it finishes, open the [results](experiment/results/) and [figures](experiment/figures/) directories.
+
+## 完整运行与参数调整<br>Full runs and options
+
+默认完整运行使用 8 轮 CNN 训练和 200 棵树：
+
+A full run uses 8 CNN epochs and 200 random-forest trees by default:
+
+```sh
+python experiment/main.py
+```
+
+用参数调整训练轮数、树的数量和训练随机种子；例如：
+
+Adjust the epochs, number of trees, and training seed with command-line options, for example:
+
+```sh
+python experiment/main.py --epochs 12 --rf-estimators 300 --seed 1
+```
+
+## 去哪里看结果<br>Where to find the results
+
+| 文件或目录<br>File or directory | 内容<br>Contents |
+|---|---|
+| [summary.json](experiment/results/summary.json) | 三种方法的训练、黑白测试与换色测试准确率<br>Training, black-and-white test, and recolored test accuracy for all three methods |
+| [best_classification_report.txt](experiment/results/best_classification_report.txt) | 换色测试中最佳方法的逐类报告<br>Per-class report for the best method on the recolored test |
+| [summary.png](experiment/figures/summary.png) | 准确率对照图<br>Accuracy comparison chart |
+| [figures/](experiment/figures/) | 混淆矩阵、错分图片、训练曲线和 t-SNE 图<br>Confusion matrices, errors, training curves, and t-SNE plots |
+
+## 本实验做了什么<br>What this experiment adds
+
+保留服装轮廓和类别，只改变前景与背景颜色，构造便于观察的分布变化。两种 CNN 使用同一网络结构，对比是否在训练时随机换色；随机森林提供另一条基线。数据处理、训练、评价和图表生成集中在一个入口，方便复跑和比较。
+
+The experiment keeps silhouettes and labels fixed while changing foreground and background colors. Both CNNs use the same architecture, making recoloring during training the comparison of interest; a random forest supplies another baseline. A single entry point handles data preparation, training, evaluation, and plots for easier reruns and comparison.
 
 [黑白测试样例](experiment/figures/samples_test_id.png) · [换色测试样例](experiment/figures/samples_test_ood.png)
 
-## 实验结果
-
-仓库里的结果来自一次完整运行，CNN 训练 8 轮，随机森林用 200 棵树。
-
-| 方法 | 黑白测试准确率 | 换色测试准确率 |
-| --- | ---: | ---: |
-| 随机森林 | 83.63% | 27.59% |
-| CNN | 86.88% | 16.10% |
-| CNN + 随机换色 | 82.19% | 84.09% |
-
-加了随机换色后，CNN 在换色测试上提高了 67.99 个百分点，在黑白测试上下降了 4.69 个百分点。
-
-[准确率对照图](experiment/figures/summary.png) · [逐类报告](experiment/results/best_classification_report.txt)
-
-## 本地运行
-
-从 Zalando 下载四个原始 `.gz` 文件，原样放到 `data/fashion/`。[下载数据][data] · [数据集许可](data/fashion/LICENSE)
-
-建议使用 Python 3.12。在仓库根目录运行以下命令。
-
-```bash
-python -m pip install -r experiment/requirements.txt
-python experiment/main.py
-```
-
-先试跑可以用 `python experiment/main.py --smoke`，CNN 训练 1 轮，随机森林用 30 棵树。每次运行会更新 `experiment/results/` 的指标和 `experiment/figures/` 的图表。
-
----
-
-## English
-
-Can a classifier still recognize an item of clothing after its colors change? This machine learning course project uses Fashion-MNIST to measure how much a change in color hurts accuracy and how much random recoloring during training can recover.
-
-### Setup
-
-The training images are binarized to white silhouettes on black backgrounds. Both tests use the same 10,000 images and keep the original silhouettes and labels. The in-distribution (ID) test keeps the black-and-white palette. The out-of-distribution (OOD) test assigns a random color to the clothing and another to the background.
-
-A random forest trained on grayscale pixels serves as a reference. The two CNNs use the same architecture. One trains on black-and-white images and the other recolors each batch during training.
-
 [Black-and-white test samples](experiment/figures/samples_test_id.png) · [Recolored test samples](experiment/figures/samples_test_ood.png)
 
-### Results
+仓库中保存的一次完整运行结果如下，使用 8 轮训练、200 棵树，两套测试各有 10,000 张图：
 
-These scores are from one full run with 8 CNN training epochs and 200 trees in the random forest.
+The stored results below come from one full run with 8 training epochs, 200 trees, and 10,000 images in each test:
 
-| Method | Black-and-white test accuracy | Recolored test accuracy |
-| --- | ---: | ---: |
-| Random forest | 83.63% | 27.59% |
+| 方法<br>Method | 黑白测试<br>Black-and-white test | 换色测试<br>Recolored test |
+|---|---:|---:|
+| 随机森林<br>Random forest | 83.63% | 27.59% |
 | CNN | 86.88% | 16.10% |
-| CNN + random recoloring | 82.19% | 84.09% |
+| CNN + 随机换色<br>CNN + random recoloring | 82.19% | 84.09% |
 
-With recoloring during training, the CNN gained 67.99 percentage points on the recolored test and lost 4.69 points on the black-and-white test.
+这次运行中，随机换色训练使 CNN 的换色测试准确率提高 67.99 个百分点，黑白测试准确率下降 4.69 个百分点。
 
-[Accuracy chart](experiment/figures/summary.png) · [Per-class report](experiment/results/best_classification_report.txt)
+In this run, recoloring during training increased the CNN's recolored-test accuracy by 67.99 percentage points and reduced black-and-white accuracy by 4.69 points.
 
-### Run locally
+## 数据与开源基础<br>Data and open-source foundations
 
-Download the four `.gz` files from Zalando and place them in `data/fashion/` as-is. [Dataset files][data] · [Dataset license](data/fashion/LICENSE)
+数据来自 [Fashion-MNIST](https://github.com/zalandoresearch/fashion-mnist)，数据集论文为 Han Xiao、Kashif Rasul 和 Roland Vollgraf 的 [Fashion-MNIST（2017）](https://arxiv.org/abs/1708.07747)。训练使用 PyTorch 与 scikit-learn，具体依赖见 [requirements.txt](experiment/requirements.txt)，数据许可见 [LICENSE](data/fashion/LICENSE)。
 
-Use Python 3.12 and run these commands from the repository root.
+The data comes from [Fashion-MNIST](https://github.com/zalandoresearch/fashion-mnist), described by Han Xiao, Kashif Rasul, and Roland Vollgraf in the [Fashion-MNIST paper (2017)](https://arxiv.org/abs/1708.07747). Training uses PyTorch and scikit-learn; see [requirements.txt](experiment/requirements.txt) for dependencies and [LICENSE](data/fashion/LICENSE) for the dataset license.
 
-```bash
-python -m pip install -r experiment/requirements.txt
-python experiment/main.py
-```
+## 注意事项<br>Attention
 
-For a shorter run, use `python experiment/main.py --smoke`. It trains each CNN for one epoch and uses 30 trees in the random forest. Each run updates the scores in `experiment/results/` and plots in `experiment/figures/`.
+每次运行会更新 `experiment/results/` 和 `experiment/figures/`，请先保存需要保留的结果。`--smoke` 仍会读取完整数据集并生成图表。表中的准确率对应已保存的那次运行。
 
-[data]: https://github.com/zalandoresearch/fashion-mnist/tree/master/data/fashion
+Each run updates `experiment/results/` and `experiment/figures/`, so save any outputs you want to keep first. `--smoke` still reads the full dataset and generates plots. The accuracy table describes the stored run.
